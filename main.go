@@ -23,9 +23,9 @@ func main() {
 	fsHandler := http.StripPrefix("/app", fs)
 	mux.Handle("/app/*", apiState.middlewareMetricsInc(fsHandler))
 
-	mux.Handle("/metrics", apiState.middlewareMetricsCount())
+	mux.Handle("GET /api/metrics", apiState.middlewareMetricsCount())
 	mux.Handle("/reset", apiState.middlewareMetricsReset())
-	mux.HandleFunc("/healthz", handlerReadiness)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -39,7 +39,7 @@ func main() {
 func handlerReadiness(w http.ResponseWriter, req *http.Request) {
 	req.Header.Add("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(http.StatusText(http.StatusOK)))
+	w.Write([]byte(http.StatusText(http.StatusOK) + "\n"))
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -58,6 +58,6 @@ func (cfg *apiConfig) middlewareMetricsReset() http.Handler {
 func (cfg *apiConfig) middlewareMetricsCount() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileServerHits)))
+		w.Write([]byte(fmt.Sprintf("Hits: %d\n", cfg.fileServerHits)))
 	})
 }
