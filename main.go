@@ -24,7 +24,7 @@ func main() {
 	mux.Handle("/app/*", apiState.middlewareMetricsInc(fsHandler))
 
 	mux.Handle("GET /api/metrics", apiState.middlewareMetricsCount())
-	mux.Handle("/reset", apiState.middlewareMetricsReset())
+	mux.Handle("GET /api/reset", apiState.middlewareMetricsReset())
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
 	srv := &http.Server{
