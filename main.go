@@ -6,12 +6,11 @@ import (
 )
 
 func main() {
-	addr := "localhost:8080"
-	mux := http.NewServeMux()
-	srv := http.Server{
-		Addr:    addr,
-		Handler: mux,
-	}
+	port := ":8080"
+	addr := "localhost" + port
+
+	http.Handle("/", http.FileServer(http.Dir(".")))
+
 	fmt.Printf("Running server at: http://%s\n", addr)
-	srv.ListenAndServe()
+	http.ListenAndServe(port, nil)
 }
