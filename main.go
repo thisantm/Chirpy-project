@@ -11,7 +11,20 @@ func main() {
 	addr := "localhost:" + port
 
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(".")))
+
+	fs := http.FileServer(http.Dir("."))
+	mux.Handle("/app/*", http.StripPrefix("/app", fs))
+
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path != "/healthz" {
+			http.NotFound(w, req)
+			return
+		}
+		body := []byte("OK")
+		req.Header.Add("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(200)
+		w.Write(body)
+	})
 
 	srv := &http.Server{
 		Addr:    ":" + port,
