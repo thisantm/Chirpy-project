@@ -20,10 +20,11 @@ func main() {
 	mux := http.NewServeMux()
 
 	fs := http.FileServer(http.Dir("."))
+	fsAdminHandler := http.StripPrefix("/admin", fs)
 	fsHandler := http.StripPrefix("/app", fs)
 	mux.Handle("/app/*", apiState.middlewareMetricsInc(fsHandler))
 
-	mux.Handle("GET /api/metrics", apiState.middlewareMetricsCount())
+	mux.Handle("GET /admin/metrics", apiState.middlewareMetricsCount(fsAdminHandler))
 	mux.Handle("GET /api/reset", apiState.middlewareMetricsReset())
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
@@ -34,30 +35,4 @@ func main() {
 
 	fmt.Printf("Running server at: http://%s\n", addr)
 	log.Fatal(srv.ListenAndServe())
-}
-
-func handlerReadiness(w http.ResponseWriter, req *http.Request) {
-	req.Header.Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(http.StatusText(http.StatusOK) + "\n"))
-}
-
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		cfg.fileServerHits++
-		next.ServeHTTP(w, req)
-	})
-}
-
-func (cfg *apiConfig) middlewareMetricsReset() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		cfg.fileServerHits = 0
-	})
-}
-
-func (cfg *apiConfig) middlewareMetricsCount() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Hits: %d\n", cfg.fileServerHits)))
-	})
 }
