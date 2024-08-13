@@ -20,12 +20,12 @@ func main() {
 	mux := http.NewServeMux()
 
 	fs := http.FileServer(http.Dir("."))
-	fsAdminHandler := http.StripPrefix("/admin", fs)
+
 	fsHandler := http.StripPrefix("/app", fs)
 	mux.Handle("/app/*", apiState.middlewareMetricsInc(fsHandler))
 
-	mux.Handle("GET /admin/metrics", apiState.middlewareMetricsCount(fsAdminHandler))
-	mux.Handle("GET /api/reset", apiState.middlewareMetricsReset())
+	mux.HandleFunc("GET /api/metrics", apiState.handlerMetricsCount)
+	mux.HandleFunc("GET /api/reset", apiState.handlerMetricsReset)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
 	srv := &http.Server{
