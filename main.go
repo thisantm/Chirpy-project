@@ -24,7 +24,7 @@ func main() {
 	fsHandler := http.StripPrefix("/app", fs)
 	mux.Handle("/app/*", apiState.middlewareMetricsInc(fsHandler))
 
-	mux.HandleFunc("GET /api/metrics", apiState.handlerMetricsCount)
+	mux.HandleFunc("GET /admin/metrics", apiState.handlerMetricsCount)
 	mux.HandleFunc("GET /api/reset", apiState.handlerMetricsReset)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 
