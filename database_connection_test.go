@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 	"reflect"
@@ -10,15 +11,30 @@ import (
 
 func TestNewDB(t *testing.T) {
 	defer os.Remove("database_test.json")
+
+	data, err := json.MarshalIndent(DBStructure{}, "", "\t")
+	if err != nil {
+		log.Print(err)
+	}
+
 	cases := []struct {
 		input    string
-		expected *DB
+		expected struct {
+			db   *DB
+			data []byte
+		}
 	}{
 		{
 			input: "database_test.json",
-			expected: &DB{
-				path: "database_test.json",
-				mux:  &sync.RWMutex{},
+			expected: struct {
+				db   *DB
+				data []byte
+			}{
+				db: &DB{
+					path: "database_test.json",
+					mux:  &sync.RWMutex{},
+				},
+				data: data,
 			},
 		},
 	}
@@ -35,20 +51,35 @@ func TestNewDB(t *testing.T) {
 			)
 			continue
 		}
-		if !reflect.DeepEqual(actual, cs.expected) {
+		if !reflect.DeepEqual(actual, cs.expected.db) {
 			t.Errorf(
 				`The expected database %v:
-					path: %v
-					mux: %v
+				path: %v
+				mux: %v
 				is not equal to the database %v:
-					path: %v
-					mux: %v`,
+				path: %v
+				mux: %v`,
 				cs.expected,
-				cs.expected.path,
-				cs.expected.mux,
+				cs.expected.db.path,
+				cs.expected.db.mux,
 				actual,
 				actual.path,
 				actual.mux,
+			)
+		}
+
+		data, err := os.ReadFile(actual.path)
+		if err != nil {
+			t.Errorf(
+				"A error has occured",
+			)
+		}
+
+		if !reflect.DeepEqual(data, cs.expected.data) {
+			t.Errorf(
+				`The expected data %v is not equal to the actual data %v`,
+				cs.expected.data,
+				data,
 			)
 		}
 	}
