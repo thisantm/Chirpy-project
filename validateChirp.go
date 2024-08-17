@@ -20,10 +20,6 @@ type serverError struct {
 	E string `json:"error"`
 }
 
-type chirpValid struct {
-	CleanedBody string `json:"cleaned_body"`
-}
-
 func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 
 	decoder := json.NewDecoder(req.Body)
@@ -47,7 +43,7 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, req *http.Requ
 
 	cleanChirp := filterProfanity(chirp.Body)
 	respBody := chirpValid{
-		CleanedBody: cleanChirp,
+		Body: cleanChirp,
 	}
 	respondWithJson(w, http.StatusOK, respBody)
 }
