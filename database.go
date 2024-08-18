@@ -99,3 +99,21 @@ func (db *DB) CreateChirp(body string) (chirpValid, error) {
 
 	return chirp, nil
 }
+
+func (db *DB) GetChirps() ([]chirpValid, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+
+	dbData, err := db.loadDB()
+	if err != nil {
+		return []chirpValid{}, err
+	}
+
+	chirps := []chirpValid{}
+
+	for _, chirp := range dbData.Chirps {
+		chirps = append(chirps, chirp)
+	}
+
+	return chirps, nil
+}
