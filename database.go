@@ -79,7 +79,7 @@ func (db *DB) CreateChirp(body string) (chirpValid, error) {
 		return chirpValid{}, err
 	}
 
-	id := 0
+	id := 1
 	for k := range dbData.Chirps {
 		id = max(id, k+1)
 	}

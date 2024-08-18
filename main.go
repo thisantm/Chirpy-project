@@ -17,6 +17,12 @@ func main() {
 		fileServerHits: 0,
 	}
 
+	databasePath := "database.json"
+	db, err := NewDB(databasePath)
+	if err != nil {
+		log.Fatal("Could not connect to a database")
+	}
+
 	mux := http.NewServeMux()
 
 	fs := http.FileServer(http.Dir("."))
@@ -27,7 +33,8 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiState.handlerMetricsCount)
 	mux.HandleFunc("GET /api/reset", apiState.handlerMetricsReset)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
-	mux.HandleFunc("POST /api/validate_chirp", apiState.handlerValidateChirp)
+	go mux.HandleFunc("POST /api/chirps", apiState.handlerCreateChirp(db))
+	go mux.HandleFunc("GET /api/chirps", apiState.handlerGetChirps(db))
 
 	srv := &http.Server{
 		Addr:    ":" + port,
