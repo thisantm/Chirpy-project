@@ -81,13 +81,16 @@ func (db *DB) CreateChirp(body string) (chirpValid, error) {
 
 	id := 0
 	for k := range dbData.Chirps {
-		id = max(id, k)
+		id = max(id, k+1)
 	}
-	id++
 
 	chirp := chirpValid{
 		Id:   id,
 		Body: body,
+	}
+
+	if dbData.Chirps == nil {
+		dbData.Chirps = make(map[int]chirpValid)
 	}
 
 	dbData.Chirps[chirp.Id] = chirp
