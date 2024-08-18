@@ -10,7 +10,10 @@ func NewDB(path string) (*DB, error) {
 		mux:  &sync.RWMutex{},
 	}
 
-	db.ensureDB()
+	err := db.ensureDB()
+	if err != nil {
+		return nil, err
+	}
 
 	return &db, nil
 }
