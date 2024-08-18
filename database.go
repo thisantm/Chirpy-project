@@ -17,7 +17,7 @@ type DBStructure struct {
 }
 
 type chirpValid struct {
-	Id   string `json:"id"`
+	Id   int    `json:"id"`
 	Body string `json:"body"`
 }
 
@@ -28,17 +28,54 @@ func (db *DB) ensureDB() error {
 	}
 
 	log.Print("Creating new Database...")
-	data, _ := json.MarshalIndent(DBStructure{}, "", "\t")
-	os.WriteFile(db.path, data, os.ModePerm)
+	data, err := json.MarshalIndent(DBStructure{}, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(db.path, data, os.ModePerm)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-// func (db *DB) CreateChirp(body string) (chirpValid, error) {
-// 	chirp := chirpValid{
-// 		Id:   id,
-// 		Body: body,
-// 	}
-// 	data, err := os.ReadFile(db.path)
-// 	data = append(data)
-// }
+func (db *DB) CreateChirp(body string) (chirpValid, error) {
+
+	data, err := os.ReadFile(db.path)
+	if err != nil {
+		return chirpValid{}, err
+	}
+
+	newData := DBStructure{}
+	err = json.Unmarshal(data, &newData)
+	if err != nil {
+		return chirpValid{}, err
+	}
+
+	id := 0
+	for k := range newData.Chirps {
+		id = max(id, k)
+	}
+	id++
+
+	chirp := chirpValid{
+		Id:   id,
+		Body: body,
+	}
+
+	newData.Chirps[chirp.Id] = chirp
+
+	marshalData, err := json.MarshalIndent(newData, "", "\t")
+	if err != nil {
+		return chirpValid{}, err
+	}
+
+	err = os.WriteFile(db.path, marshalData, os.ModePerm)
+	if err != nil {
+		return chirpValid{}, err
+	}
+
+	return chirp, nil
+}
