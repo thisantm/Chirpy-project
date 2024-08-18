@@ -42,6 +42,8 @@ func (db *DB) ensureDB() error {
 }
 
 func (db *DB) CreateChirp(body string) (chirpValid, error) {
+	db.mux.Lock()
+	defer db.mux.Unlock()
 
 	data, err := os.ReadFile(db.path)
 	if err != nil {
