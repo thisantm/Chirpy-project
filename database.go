@@ -41,23 +41,46 @@ func (db *DB) ensureDB() error {
 	return nil
 }
 
+func (db *DB) loadDB() (DBStructure, error) {
+	data, err := os.ReadFile(db.path)
+	if err != nil {
+		return DBStructure{}, err
+	}
+
+	dbData := DBStructure{}
+	err = json.Unmarshal(data, &dbData)
+	if err != nil {
+		return DBStructure{}, err
+	}
+
+	return dbData, nil
+}
+
+func (db *DB) writeDB(dbStructure DBStructure) error {
+	marshalData, err := json.MarshalIndent(dbStructure, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(db.path, marshalData, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (db *DB) CreateChirp(body string) (chirpValid, error) {
 	db.mux.Lock()
 	defer db.mux.Unlock()
 
-	data, err := os.ReadFile(db.path)
-	if err != nil {
-		return chirpValid{}, err
-	}
-
-	newData := DBStructure{}
-	err = json.Unmarshal(data, &newData)
+	dbData, err := db.loadDB()
 	if err != nil {
 		return chirpValid{}, err
 	}
 
 	id := 0
-	for k := range newData.Chirps {
+	for k := range dbData.Chirps {
 		id = max(id, k)
 	}
 	id++
@@ -67,14 +90,9 @@ func (db *DB) CreateChirp(body string) (chirpValid, error) {
 		Body: body,
 	}
 
-	newData.Chirps[chirp.Id] = chirp
+	dbData.Chirps[chirp.Id] = chirp
 
-	marshalData, err := json.MarshalIndent(newData, "", "\t")
-	if err != nil {
-		return chirpValid{}, err
-	}
-
-	err = os.WriteFile(db.path, marshalData, os.ModePerm)
+	err = db.writeDB(dbData)
 	if err != nil {
 		return chirpValid{}, err
 	}
