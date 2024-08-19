@@ -34,7 +34,8 @@ func main() {
 	mux.HandleFunc("GET /api/reset", apiState.handlerMetricsReset)
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	go mux.HandleFunc("POST /api/chirps", apiState.handlerCreateChirp(db))
-	go mux.HandleFunc("GET /api/chirps", apiState.handlerGetChirps(db))
+	go mux.HandleFunc("GET /api/chirps/", apiState.handlerGetChirps(db))
+	go mux.HandleFunc("GET /api/chirps/{id}", apiState.handlerGetChirpById(db))
 
 	srv := &http.Server{
 		Addr:    ":" + port,

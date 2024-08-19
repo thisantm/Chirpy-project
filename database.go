@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"sync"
@@ -116,6 +117,23 @@ func (db *DB) GetChirps() ([]chirpValid, error) {
 
 	for _, chirp := range dbData.Chirps {
 		chirps = append(chirps, chirp)
+	}
+
+	return chirps, nil
+}
+
+func (db *DB) GetChirpById(id int) (chirpValid, error) {
+	db.mux.RLock()
+	defer db.mux.RUnlock()
+
+	dbData, err := db.loadDB()
+	if err != nil {
+		return chirpValid{}, err
+	}
+
+	chirps, ok := dbData.Chirps[id]
+	if !ok {
+		return chirpValid{}, errors.New("not found")
 	}
 
 	return chirps, nil

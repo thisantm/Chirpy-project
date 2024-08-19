@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +19,38 @@ type chirpPost struct {
 
 type serverError struct {
 	E string `json:"error"`
+}
+
+func (cfg *apiConfig) handlerGetChirpById(db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		idString := req.PathValue("id")
+		id, err := strconv.Atoi(idString)
+		if err != nil {
+			respBody := serverError{
+				E: "Something went wrong",
+			}
+			respondWithJson(w, http.StatusInternalServerError, respBody)
+			return
+		}
+
+		chirp, err := db.GetChirpById(id)
+		if err != nil {
+			if err.Error() == "not found" {
+				respBody := serverError{
+					E: "Chirp Not Found",
+				}
+				respondWithJson(w, http.StatusNotFound, respBody)
+				return
+			}
+			respBody := serverError{
+				E: "Something went wrong",
+			}
+			respondWithJson(w, http.StatusInternalServerError, respBody)
+			return
+		}
+
+		respondWithJson(w, http.StatusOK, chirp)
+	}
 }
 
 func (cfg *apiConfig) handlerGetChirps(db *DB) http.HandlerFunc {
