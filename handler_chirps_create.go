@@ -1,0 +1,93 @@
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/thisantm/Chirpy-project/internal/database"
+)
+
+var profaneWords = map[string]struct{}{
+	"kerfuffle": {},
+	"sharbert":  {},
+	"fornax":    {},
+}
+
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	User_Id   uuid.UUID `json:"user_id"`
+}
+
+type chirpPost struct {
+	Body    string    `json:"body"`
+	User_ID uuid.UUID `json:"user_id"`
+}
+
+type chirpResponse struct {
+	Chirp
+}
+
+func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Request) {
+	decoder := json.NewDecoder(req.Body)
+	chirpPost := chirpPost{}
+	err := decoder.Decode(&chirpPost)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
+		return
+	}
+
+	chirpClean, err := handlerValidateChirp(chirpPost.Body)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Error validating chirp", err)
+		return
+	}
+
+	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{
+		Body:   chirpClean,
+		UserID: chirpPost.User_ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		return
+	}
+
+	chirpResponse := chirpResponse{
+		Chirp: Chirp{
+			ID:        chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			User_Id:   chirp.UserID,
+		},
+	}
+
+	respondWithJSON(w, http.StatusCreated, chirpResponse)
+}
+
+func handlerValidateChirp(chirp string) (string, error) {
+	if len(chirp) > 140 {
+		return "", errors.New("Chirp is too long")
+	}
+
+	chirpClean := filterProfanity(chirp)
+	return chirpClean, nil
+}
+
+func filterProfanity(chirp string) string {
+	chirpList := strings.Split(chirp, " ")
+	for i := range len(chirpList) {
+		loweredWord := strings.ToLower(chirpList[i])
+		if _, ok := profaneWords[loweredWord]; ok {
+			chirpList[i] = "****"
+		}
+	}
+	return strings.Join(chirpList, " ")
+}
