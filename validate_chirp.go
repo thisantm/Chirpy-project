@@ -20,7 +20,7 @@ type chirpValid struct {
 	CleanedBody string `json:"cleaned_body"`
 }
 
-func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
+func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 
 	decoder := json.NewDecoder(req.Body)
 	chirp := chirpPost{}
