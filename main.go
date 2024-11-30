@@ -1,20 +1,37 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"sync/atomic"
+
+	"github.com/thisantm/Chirpy-project/internal/database"
+
+	_ "github.com/lib/pq"
 )
 
 type apiConfig struct {
-	fileServerHits int
+	fileServerHits atomic.Int32
+	dbQueries      *database.Queries
 }
 
 func main() {
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("Failed to connect to postgres database")
+	}
+
+	dbQueries := database.New(db)
+
 	const port = "8080"
 	addr := "localhost:" + port
 	apiState := apiConfig{
-		fileServerHits: 0,
+		fileServerHits: atomic.Int32{},
+		dbQueries:      dbQueries,
 	}
 
 	mux := http.NewServeMux()
