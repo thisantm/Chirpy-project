@@ -16,10 +16,6 @@ type chirpPost struct {
 	Body string `json:"body"`
 }
 
-type serverError struct {
-	E string `json:"error"`
-}
-
 type chirpValid struct {
 	CleanedBody string `json:"cleaned_body"`
 }
@@ -30,18 +26,12 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, req *http.Requ
 	chirp := chirpPost{}
 	err := decoder.Decode(&chirp)
 	if err != nil {
-		respBody := serverError{
-			E: "Something went wrong",
-		}
-		respondWithJson(w, http.StatusInternalServerError, respBody)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
 	}
 
 	if len(chirp.Body) > 140 {
-		respBody := serverError{
-			E: "Chirp is too long",
-		}
-		respondWithJson(w, http.StatusBadRequest, respBody)
+		respondWithError(w, http.StatusInternalServerError, "Chirp is too long", err)
 		return
 	}
 
@@ -49,7 +39,7 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, req *http.Requ
 	respBody := chirpValid{
 		CleanedBody: cleanChirp,
 	}
-	respondWithJson(w, http.StatusOK, respBody)
+	respondWithJSON(w, http.StatusOK, respBody)
 }
 
 func filterProfanity(chirp string) string {
