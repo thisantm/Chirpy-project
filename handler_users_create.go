@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/thisantm/Chirpy-project/internal/auth"
+	"github.com/thisantm/Chirpy-project/internal/database"
 )
 
 type User struct {
@@ -16,7 +18,8 @@ type User struct {
 }
 
 type UserRequest struct {
-	Email string `json:"email"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {
@@ -32,7 +35,16 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
-	user, err := cfg.db.CreateUser(req.Context(), userRequest.Email)
+	hashedPassword, err := auth.HashPassword(userRequest.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "failed to hash password", err)
+		return
+	}
+
+	user, err := cfg.db.CreateUser(req.Context(), database.CreateUserParams{
+		Email:          userRequest.Email,
+		HashedPassword: hashedPassword,
+	})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
 		return
