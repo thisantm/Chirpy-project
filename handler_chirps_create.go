@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/thisantm/Chirpy-project/internal/auth"
 	"github.com/thisantm/Chirpy-project/internal/database"
 )
 
@@ -26,8 +27,7 @@ type Chirp struct {
 }
 
 type chirpPost struct {
-	Body    string    `json:"body"`
-	User_ID uuid.UUID `json:"user_id"`
+	Body string `json:"body"`
 }
 
 type chirpResponse struct {
@@ -43,6 +43,18 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Reques
 		return
 	}
 
+	bearer, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "authorization header not found", err)
+		return
+	}
+
+	userId, err := auth.ValidateJWT(bearer, cfg.jwtSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "invalid login token", err)
+		return
+	}
+
 	chirpClean, err := handlerValidateChirp(chirpPost.Body)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Error validating chirp", err)
@@ -51,7 +63,7 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, req *http.Reques
 
 	chirp, err := cfg.db.CreateChirp(req.Context(), database.CreateChirpParams{
 		Body:   chirpClean,
-		UserID: chirpPost.User_ID,
+		UserID: userId,
 	})
 
 	if err != nil {
