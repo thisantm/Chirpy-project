@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/thisantm/Chirpy-project/internal/auth"
+	"github.com/thisantm/Chirpy-project/internal/database"
 )
 
 type LoginRequest struct {
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	ExpiresInSeconds string `json:"expires_in_seconds"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type LoginResponse struct {
 	User
-	Token string `json:"token"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
@@ -26,11 +27,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters", err)
 		return
-	}
-
-	timeToExpire, err := time.ParseDuration(loginRequest.ExpiresInSeconds)
-	if err != nil || timeToExpire > time.Hour {
-		timeToExpire = time.Hour
 	}
 
 	dbUser, err := cfg.db.GetUserByEmail(req.Context(), loginRequest.Email)
@@ -45,9 +41,27 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	token, err := auth.MakeJWT(dbUser.ID, cfg.jwtSecret, timeToExpire)
+	accessToken, err := auth.MakeJWT(dbUser.ID, cfg.jwtSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "failed to create login token", err)
+		return
+	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "failed to create refresh token", err)
+		return
+	}
+
+	createRefreshTokenParams := database.CreateRefreshTokenParams{
+		Token:     refreshToken,
+		UserID:    dbUser.ID,
+		ExpiresAt: time.Now().UTC().Add(time.Hour * 24 * 60),
+	}
+
+	dbRefreshToken, err := cfg.db.CreateRefreshToken(req.Context(), createRefreshTokenParams)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "failed to create refresh token in database", err)
 		return
 	}
 
@@ -58,7 +72,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, req *http.Request) {
 			UpdatedAt: dbUser.UpdatedAt,
 			Email:     dbUser.Email,
 		},
-		Token: token,
+		Token:        accessToken,
+		RefreshToken: dbRefreshToken.Token,
 	}
 
 	respondWithJSON(w, http.StatusOK, response)
