@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/thisantm/Chirpy-project/internal/database"
 )
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request) {
@@ -19,7 +20,15 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	dbChirps, err := cfg.db.GetAllChirps(req.Context(), userId)
+	order := req.URL.Query().Get("sort")
+	if order == "" {
+		order = "asc"
+	}
+	dbChirps, err := cfg.db.GetAllChirps(req.Context(),
+		database.GetAllChirpsParams{
+			UserID: userId,
+			Order:  order,
+		})
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to get chirps", err)
 		return

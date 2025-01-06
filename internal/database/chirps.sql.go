@@ -55,11 +55,18 @@ const getAllChirps = `-- name: GetAllChirps :many
 SELECT id, created_at, updated_at, body, user_id
 FROM chirps
 WHERE user_id = coalesce($1, user_id)
-ORDER BY created_at ASC
+ORDER BY 
+    CASE WHEN $2::text = 'asc' then created_at end ASC,
+    CASE WHEN $2 = 'desc' then created_at end DESC
 `
 
-func (q *Queries) GetAllChirps(ctx context.Context, userID uuid.NullUUID) ([]Chirp, error) {
-	rows, err := q.db.QueryContext(ctx, getAllChirps, userID)
+type GetAllChirpsParams struct {
+	UserID uuid.NullUUID
+	Order  string
+}
+
+func (q *Queries) GetAllChirps(ctx context.Context, arg GetAllChirpsParams) ([]Chirp, error) {
+	rows, err := q.db.QueryContext(ctx, getAllChirps, arg.UserID, arg.Order)
 	if err != nil {
 		return nil, err
 	}
